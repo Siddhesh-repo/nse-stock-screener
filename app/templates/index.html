@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSE Live Stock Screener - Full Mode Real-Time Ticker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #0b0f19;
+            --bg-card: rgba(22, 30, 46, 0.7);
+            --bg-card-hover: rgba(30, 41, 64, 0.9);
+            --bg-table-header: #111827;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(59, 130, 246, 0.4);
+            
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --text-dim: #6b7280;
+            
+            --green: #10b981;
+            --green-glow: rgba(16, 185, 129, 0.25);
+            --green-bg: rgba(16, 185, 129, 0.15);
+            
+            --red: #ef4444;
+            --red-glow: rgba(239, 68, 68, 0.25);
+            --red-bg: rgba(239, 68, 68, 0.15);
+
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.3);
+            --purple: #8b5cf6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        .glass {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+
+        header {
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(11, 15, 25, 0.95);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #fff;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .logo-text h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #fff, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #eab308;
+            box-shadow: 0 0 8px #eab308;
+        }
+
+        .dot.connected {
+            background-color: var(--green);
+            box-shadow: 0 0 10px var(--green);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .stat-chip {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-chip span {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        main {
+            flex: 1;
+            padding: 1.5rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .card {
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-hover);
+        }
+
+        .card-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+
+        .card-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .card-subtext {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        .text-green { color: var(--green); }
+        .text-red { color: var(--red); }
+        .text-accent { color: var(--accent); }
+
+        .controls-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+        }
+
+        .search-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+            min-width: 260px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(17, 24, 39, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            color: #fff;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .filter-pills {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pill {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 0.45rem 0.9rem;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .pill:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .pill.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .sort-select {
+            background: rgba(17, 24, 39, 0.8);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.55rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.88rem;
+        }
+
+        th {
+            background: var(--bg-table-header);
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 0.9rem 1rem;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        th:hover {
+            color: #fff;
+        }
+
+        td {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            white-space: nowrap;
+            font-family: 'JetBrains Mono', monospace;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        tr {
+            transition: background-color 0.15s ease;
+            cursor: pointer;
+        }
+
+        tr:hover {
+            background-color: var(--bg-card-hover);
+        }
+
+        .symbol-cell {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .symbol-sub {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .badge-chp {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.55rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .badge-chp.up {
+            background: var(--green-bg);
+            color: var(--green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-chp.down {
+            background: var(--red-bg);
+            color: var(--red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* Tick Flash Effects for Smooth Real-time Visual Updates */
+        @keyframes flashUpKeyframe {
+            0% { background-color: rgba(16, 185, 129, 0.4); color: #fff; }
+            100% { background-color: transparent; }
+        }
+
+        @keyframes flashDownKeyframe {
+            0% { background-color: rgba(239, 68, 68, 0.4); color: #fff; }
+            100% { background-color: transparent; }
+        }
+
+        tr.flash-up td {
+            animation: flashUpKeyframe 0.6s ease-out;
+        }
+
+        tr.flash-down td {
+            animation: flashDownKeyframe 0.6s ease-out;
+        }
+
+        .pagination-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.8rem 1rem;
+            background: rgba(17, 24, 39, 0.6);
+            border-top: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .page-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-card {
+            width: 90%;
+            max-width: 650px;
+            background: #131b2e;
+            border: 1px solid var(--border-hover);
+            border-radius: 16px;
+            padding: 1.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .detail-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .detail-val {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 0.2rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Screened Stocks Section (Positive & Negative Separated) */
+        .screened-grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+            gap: 1.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .screened-box {
+            display: flex;
+            flex-direction: column;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .screened-box.pos-box {
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .screened-box.neg-box {
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .screened-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.9rem 1.25rem;
+            background: rgba(17, 24, 39, 0.85);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .screened-title {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .screened-title h2 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .screened-badge-pos {
+            background: var(--green-bg);
+            color: var(--green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 0.2rem 0.65rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .screened-badge-neg {
+            background: var(--red-bg);
+            color: var(--red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 0.2rem 0.65rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .screened-table-container {
+            overflow-x: auto;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        .screened-table-container table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.88rem;
+        }
+
+        .screened-table-container th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.75rem 1rem;
+        }
+
+        .pos-table-container th {
+            background: rgba(16, 185, 129, 0.12);
+            color: var(--green);
+        }
+
+        .neg-table-container th {
+            background: rgba(239, 68, 68, 0.12);
+            color: var(--red);
+        }
+
+        .screened-table-container tr:hover {
+            background-color: rgba(255, 255, 255, 0.04);
+        }
+
+        .screened-empty {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: var(--text-muted);
+            font-size: 0.88rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-container">
+            <div class="logo-icon">⚡</div>
+            <div class="logo-text">
+                <h1>NSE Stock Screener</h1>
+                <p>Real-Time FYERS Full Mode Stream</p>
+            </div>
+        </div>
+
+        <div class="status-badge">
+            <div class="status-indicator">
+                <div id="statusDot" class="dot"></div>
+                <span id="statusText">Connecting...</span>
+            </div>
+            <div class="stat-chip">Ticks: <span id="totalTicksCount">0</span></div>
+            <div class="stat-chip">Stocks: <span id="totalSymbolsCount">0</span></div>
+        </div>
+    </header>
+
+    <main>
+        <div class="summary-grid">
+            <div class="card glass">
+                <div class="card-label">Monitored Stocks</div>
+                <div class="card-value text-accent" id="kpiTotalStocks">0</div>
+                <div class="card-subtext">Active FYERS Full Mode stream</div>
+            </div>
+
+            <div class="card glass">
+                <div class="card-label">Gainers (Advances)</div>
+                <div class="card-value text-green" id="kpiGainers">0</div>
+                <div class="card-subtext" id="kpiTopGainer">Top: -</div>
+            </div>
+
+            <div class="card glass">
+                <div class="card-label">Losers (Declines)</div>
+                <div class="card-value text-red" id="kpiLosers">0</div>
+                <div class="card-subtext" id="kpiTopLoser">Top: -</div>
+            </div>
+
+            <div class="card glass">
+                <div class="card-label">Total Day Volume</div>
+                <div class="card-value" id="kpiTotalVolume">0</div>
+                <div class="card-subtext">Cumulative shares traded</div>
+            </div>
+
+            <div class="card glass" style="border-color: rgba(245, 158, 11, 0.2);">
+                <div class="card-label" style="color: #f59e0b;">🎯 Screened Stocks</div>
+                <div class="card-value" style="color: #f59e0b;" id="kpiScreened">0</div>
+                <div class="card-subtext">Stocks crossing ±4% threshold</div>
+            </div>
+        </div>
+
+        <!-- Screened Stocks Grid (Positive & Negative Separated) -->
+        <div class="screened-grid-container">
+            <!-- Positive Screened Stocks (+4% or higher) -->
+            <div class="screened-box pos-box glass">
+                <div class="screened-header">
+                    <div class="screened-title">
+                        <span class="dot connected" style="background-color: var(--green); box-shadow: 0 0 8px var(--green);"></span>
+                        <h2>🚀 Positive Screened (+4% or higher)</h2>
+                    </div>
+                    <span class="screened-badge-pos" id="posScreenedCount">0</span>
+                </div>
+                <div class="screened-table-container pos-table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>LTP (₹)</th>
+                                <th>Change %</th>
+                                <th>Prev Close</th>
+                                <th>Volume</th>
+                                <th>Added At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="posScreenedTableBody">
+                            <tr>
+                                <td colspan="6" class="screened-empty">
+                                    No positive screened stocks (+4%) detected yet.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Negative Screened Stocks (-4% or lower) -->
+            <div class="screened-box neg-box glass">
+                <div class="screened-header">
+                    <div class="screened-title">
+                        <span class="dot connected" style="background-color: var(--red); box-shadow: 0 0 8px var(--red);"></span>
+                        <h2>📉 Negative Screened (-4% or lower)</h2>
+                    </div>
+                    <span class="screened-badge-neg" id="negScreenedCount">0</span>
+                </div>
+                <div class="screened-table-container neg-table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>LTP (₹)</th>
+                                <th>Change %</th>
+                                <th>Prev Close</th>
+                                <th>Volume</th>
+                                <th>Added At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="negScreenedTableBody">
+                            <tr>
+                                <td colspan="6" class="screened-empty">
+                                    No negative screened stocks (-4%) detected yet.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-bar glass">
+            <div class="search-group">
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search by Symbol (e.g. RELIANCE, TCS, INFY)...">
+            </div>
+
+            <div class="filter-pills">
+                <div class="pill active" data-filter="all">All Stocks</div>
+                <div class="pill" data-filter="gainers">Gainers 🚀</div>
+                <div class="pill" data-filter="losers">Losers 📉</div>
+                <div class="pill" data-filter="high_volume">High Volume ⚡</div>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                <select id="sortSelect" class="sort-select">
+                    <option value="symbol_asc">Sort: Symbol (A-Z)</option>
+                    <option value="chp_desc">Sort: Change % (High to Low)</option>
+                    <option value="chp_asc">Sort: Change % (Low to High)</option>
+                    <option value="ltp_desc">Sort: Price (High to Low)</option>
+                    <option value="vol_desc" selected>Sort: Volume (Highest First)</option>
+                </select>
+
+                <select id="pageSizeSelect" class="sort-select">
+                    <option value="50">50 / page</option>
+                    <option value="100">100 / page</option>
+                    <option value="250">250 / page</option>
+                    <option value="1000">1000 / page</option>
+                    <option value="9999">All Symbols</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-container glass">
+            <table>
+                <thead>
+                    <tr>
+                        <th onclick="changeSort('short_name')">Symbol</th>
+                        <th onclick="changeSort('ltp')">LTP (₹)</th>
+                        <th onclick="changeSort('ch')">Change</th>
+                        <th onclick="changeSort('chp')">Change %</th>
+                        <th onclick="changeSort('open_price')">Open</th>
+                        <th onclick="changeSort('high_price')">High</th>
+                        <th onclick="changeSort('low_price')">Low</th>
+                        <th onclick="changeSort('prev_close_price')">Prev Close</th>
+                        <th onclick="changeSort('avg_trade_price')">Avg Price</th>
+                        <th onclick="changeSort('vol_traded_today')">Volume</th>
+                        <th>Bid / Ask</th>
+                        <th>Updated</th>
+                    </tr>
+                </thead>
+                <tbody id="stocksTableBody">
+                    <tr>
+                        <td colspan="12" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                            Connecting to FYERS Full Mode WebSocket & Loading symbols...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="pagination-bar">
+                <div>Showing <span id="pageRange">0 - 0</span> of <span id="totalFiltered">0</span> symbols</div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button id="prevPageBtn" class="page-btn">← Prev</button>
+                    <span>Page <strong id="currentPageNum">1</strong> of <strong id="totalPagesNum">1</strong></span>
+                    <button id="nextPageBtn" class="page-btn">Next →</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="detailModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modalSymbol" style="font-size: 1.4rem;">NSE:RELIANCE-EQ</h2>
+                    <p id="modalLtp" style="font-size: 1.1rem; font-weight: 700; color: var(--green); margin-top: 0.2rem;">₹ 0.00 (0.00%)</p>
+                </div>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+
+            <div class="detail-grid">
+                <div class="detail-item"><div class="detail-label">Open Price</div><div class="detail-val" id="modalOpen">₹0.00</div></div>
+                <div class="detail-item"><div class="detail-label">Day High</div><div class="detail-val text-green" id="modalHigh">₹0.00</div></div>
+                <div class="detail-item"><div class="detail-label">Day Low</div><div class="detail-val text-red" id="modalLow">₹0.00</div></div>
+                <div class="detail-item"><div class="detail-label">Previous Close</div><div class="detail-val" id="modalClose">₹0.00</div></div>
+                <div class="detail-item"><div class="detail-label">Avg Trade Price</div><div class="detail-val" id="modalAvg">₹0.00</div></div>
+                <div class="detail-item"><div class="detail-label">Volume Traded</div><div class="detail-val" id="modalVolume">0</div></div>
+                <div class="detail-item"><div class="detail-label">Best Bid (Buy)</div><div class="detail-val text-green" id="modalBid">₹0.00 (0)</div></div>
+                <div class="detail-item"><div class="detail-label">Best Ask (Sell)</div><div class="detail-val text-red" id="modalAsk">₹0.00 (0)</div></div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.3); padding: 0.8rem; border-radius: 8px; font-size: 0.8rem; font-family: monospace;">
+                <strong>Market Depth Summary:</strong> Total Buy Qty: <span id="modalTotBuy" class="text-green">0</span> | Total Sell Qty: <span id="modalTotSell" class="text-red">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const allStocksMap = new Map();
+        let currentFilter = 'all';
+        let currentSearch = '';
+        let currentSort = 'vol_desc';
+        let currentPage = 1;
+        let pageSize = 50;
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/live`;
+        let ws;
+
+        function connectWebSocket() {
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                document.getElementById('statusDot').classList.add('connected');
+                document.getElementById('statusText').innerText = 'LIVE WEBSOCKET';
+            };
+
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                if (msg.type === 'ticks_batch') {
+                    if (msg.stats) {
+                        updateStats(msg.stats);
+                    }
+                    if (msg.data && msg.data.length > 0) {
+                        let hasNewStocks = false;
+                        msg.data.forEach(stock => {
+                            if (!allStocksMap.has(stock.symbol)) {
+                                hasNewStocks = true;
+                            }
+                            allStocksMap.set(stock.symbol, stock);
+                            
+                            // In-place DOM update for existing visible rows
+                            updateTableRowInPlace(stock);
+                        });
+
+                        if (hasNewStocks) {
+                            renderTable();
+                        }
+                    }
+                    // Update screened stocks table
+                    if (msg.screened) {
+                        renderScreenedTable(msg.screened);
+                    }
+                }
+            };
+
+            ws.onclose = () => {
+                document.getElementById('statusDot').classList.remove('connected');
+                document.getElementById('statusText').innerText = 'Reconnecting...';
+                setTimeout(connectWebSocket, 1500);
+            };
+        }
+
+        async function fetchInitialData() {
+            try {
+                const resp = await fetch('/api/stocks');
+                const data = await resp.json();
+                if (data.stocks) {
+                    data.stocks.forEach(stock => allStocksMap.set(stock.symbol, stock));
+                }
+                if (data.stats) {
+                    updateStats(data.stats);
+                }
+                renderTable();
+            } catch (err) {
+                console.error("Error fetching initial stocks:", err);
+            }
+        }
+
+        function updateStats(stats) {
+            document.getElementById('totalTicksCount').innerText = stats.total_ticks.toLocaleString();
+            document.getElementById('totalSymbolsCount').innerText = stats.total_symbols.toLocaleString();
+            document.getElementById('kpiTotalStocks').innerText = stats.total_symbols.toLocaleString();
+            document.getElementById('kpiGainers').innerText = stats.gainers.toLocaleString();
+            document.getElementById('kpiLosers').innerText = stats.losers.toLocaleString();
+            document.getElementById('kpiTotalVolume').innerText = formatVolume(stats.total_volume);
+
+            if (stats.top_gainer) {
+                document.getElementById('kpiTopGainer').innerText = `Top: ${stats.top_gainer.symbol} (+${stats.top_gainer.chp.toFixed(2)}%)`;
+            }
+            if (stats.top_loser) {
+                document.getElementById('kpiTopLoser').innerText = `Top: ${stats.top_loser.symbol} (${stats.top_loser.chp.toFixed(2)}%)`;
+            }
+        }
+
+        function formatVolume(vol) {
+            if (!vol) return '0';
+            if (vol >= 1_000_000_000) return (vol / 1_000_000_000).toFixed(2) + 'B';
+            if (vol >= 1_000_000) return (vol / 1_000_000).toFixed(2) + 'M';
+            if (vol >= 1_000) return (vol / 1_000).toFixed(1) + 'K';
+            return vol.toString();
+        }
+
+        function getFilteredAndSortedStocks() {
+            let stocks = Array.from(allStocksMap.values());
+
+            if (currentSearch) {
+                const query = currentSearch.toLowerCase();
+                stocks = stocks.filter(s => s.symbol.toLowerCase().includes(query) || s.short_name.toLowerCase().includes(query));
+            }
+
+            if (currentFilter === 'gainers') stocks = stocks.filter(s => s.ch > 0);
+            else if (currentFilter === 'losers') stocks = stocks.filter(s => s.ch < 0);
+            else if (currentFilter === 'high_volume') stocks = stocks.filter(s => s.vol_traded_today >= 1000000);
+
+            const [sortField, sortDir] = currentSort.split('_');
+            stocks.sort((a, b) => {
+                let valA = a[sortField] ?? 0;
+                let valB = b[sortField] ?? 0;
+                if (typeof valA === 'string') {
+                    return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                }
+                return sortDir === 'asc' ? valA - valB : valB - valA;
+            });
+
+            return stocks;
+        }
+
+        function updateTableRowInPlace(s) {
+            const safeId = `row-${s.symbol.replace(/[^a-zA-Z0-9]/g, '_')}`;
+            const row = document.getElementById(safeId);
+            if (!row) return;
+
+            const ltpEl = row.querySelector('.cell-ltp');
+            const chEl = row.querySelector('.cell-ch');
+            const chpBadge = row.querySelector('.badge-chp');
+            const openEl = row.querySelector('.cell-open');
+            const highEl = row.querySelector('.cell-high');
+            const lowEl = row.querySelector('.cell-low');
+            const prevEl = row.querySelector('.cell-prev');
+            const avgEl = row.querySelector('.cell-avg');
+            const volEl = row.querySelector('.cell-vol');
+            const bidAskEl = row.querySelector('.cell-bidask');
+            const updatedEl = row.querySelector('.cell-updated');
+
+            const chSign = s.ch > 0 ? '+' : '';
+            const chpSign = s.chp > 0 ? '+' : '';
+
+            if (ltpEl) ltpEl.textContent = `₹${s.ltp ? s.ltp.toFixed(2) : '0.00'}`;
+            if (chEl) {
+                chEl.textContent = `${chSign}${s.ch ? s.ch.toFixed(2) : '0.00'}`;
+                chEl.className = `cell-ch ${s.ch > 0 ? 'text-green' : (s.ch < 0 ? 'text-red' : '')}`;
+            }
+            if (chpBadge) {
+                chpBadge.textContent = `${chpSign}${s.chp ? s.chp.toFixed(2) : '0.00'}%`;
+                chpBadge.className = `badge-chp ${s.ch > 0 ? 'up' : (s.ch < 0 ? 'down' : '')}`;
+            }
+
+            if (openEl) openEl.textContent = `₹${s.open_price ? s.open_price.toFixed(2) : '0.00'}`;
+            if (highEl) highEl.textContent = `₹${s.high_price ? s.high_price.toFixed(2) : '0.00'}`;
+            if (lowEl) lowEl.textContent = `₹${s.low_price ? s.low_price.toFixed(2) : '0.00'}`;
+            if (prevEl) prevEl.textContent = `₹${s.prev_close_price ? s.prev_close_price.toFixed(2) : '0.00'}`;
+            if (avgEl) avgEl.textContent = `₹${s.avg_trade_price ? s.avg_trade_price.toFixed(2) : '0.00'}`;
+            if (volEl) volEl.textContent = formatVolume(s.vol_traded_today);
+            if (bidAskEl) {
+                bidAskEl.innerHTML = `<span class="text-green">₹${s.bid_price ? s.bid_price.toFixed(2) : '0'}</span> / <span class="text-red">₹${s.ask_price ? s.ask_price.toFixed(2) : '0'}</span>`;
+            }
+            if (updatedEl) updatedEl.textContent = s.updated_at || '-';
+
+            // Flash Row
+            if (s.direction && s.direction !== 'neutral') {
+                row.classList.remove('flash-up', 'flash-down');
+                void row.offsetWidth; // Force reflow
+                row.classList.add(s.direction === 'up' ? 'flash-up' : 'flash-down');
+                setTimeout(() => row.classList.remove('flash-up', 'flash-down'), 600);
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('stocksTableBody');
+            const stocks = getFilteredAndSortedStocks();
+
+            const totalFiltered = stocks.length;
+            const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            const startIndex = (currentPage - 1) * pageSize;
+            const pageStocks = stocks.slice(startIndex, startIndex + pageSize);
+
+            document.getElementById('totalFiltered').innerText = totalFiltered.toLocaleString();
+            document.getElementById('pageRange').innerText = totalFiltered === 0 ? '0 - 0' : `${startIndex + 1} - ${Math.min(startIndex + pageSize, totalFiltered)}`;
+            document.getElementById('currentPageNum').innerText = currentPage;
+            document.getElementById('totalPagesNum').innerText = totalPages;
+
+            if (pageStocks.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; padding: 2rem; color: var(--text-muted);">No symbols found matching filter.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            pageStocks.forEach(s => {
+                const safeId = `row-${s.symbol.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                const chClass = s.ch > 0 ? 'up' : (s.ch < 0 ? 'down' : '');
+                const chSign = s.ch > 0 ? '+' : '';
+                const chpSign = s.chp > 0 ? '+' : '';
+
+                html += `
+                    <tr id="${safeId}" onclick="openModal('${s.symbol}')">
+                        <td>
+                            <div class="symbol-cell">
+                                <span>${s.short_name}</span>
+                                <span class="symbol-sub">${s.symbol}</span>
+                            </div>
+                        </td>
+                        <td class="cell-ltp" style="font-weight: 700;">₹${s.ltp ? s.ltp.toFixed(2) : '0.00'}</td>
+                        <td class="cell-ch ${s.ch > 0 ? 'text-green' : (s.ch < 0 ? 'text-red' : '')}">${chSign}${s.ch ? s.ch.toFixed(2) : '0.00'}</td>
+                        <td>
+                            <span class="badge-chp ${chClass}">${chpSign}${s.chp ? s.chp.toFixed(2) : '0.00'}%</span>
+                        </td>
+                        <td class="cell-open">₹${s.open_price ? s.open_price.toFixed(2) : '0.00'}</td>
+                        <td class="cell-high text-green">₹${s.high_price ? s.high_price.toFixed(2) : '0.00'}</td>
+                        <td class="cell-low text-red">₹${s.low_price ? s.low_price.toFixed(2) : '0.00'}</td>
+                        <td class="cell-prev">₹${s.prev_close_price ? s.prev_close_price.toFixed(2) : '0.00'}</td>
+                        <td class="cell-avg">₹${s.avg_trade_price ? s.avg_trade_price.toFixed(2) : '0.00'}</td>
+                        <td class="cell-vol" style="font-weight: 600;">${formatVolume(s.vol_traded_today)}</td>
+                        <td class="cell-bidask" style="font-size: 0.75rem;">
+                            <span class="text-green">₹${s.bid_price ? s.bid_price.toFixed(2) : '0'}</span> / 
+                            <span class="text-red">₹${s.ask_price ? s.ask_price.toFixed(2) : '0'}</span>
+                        </td>
+                        <td class="cell-updated" style="color: var(--text-dim); font-size: 0.75rem;">${s.updated_at || '-'}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        function openModal(symbol) {
+            const s = allStocksMap.get(symbol);
+            if (!s) return;
+
+            document.getElementById('modalSymbol').innerText = s.symbol;
+            document.getElementById('modalLtp').innerText = `₹${s.ltp.toFixed(2)} (${s.chp >= 0 ? '+' : ''}${s.chp.toFixed(2)}%)`;
+            document.getElementById('modalOpen').innerText = `₹${s.open_price.toFixed(2)}`;
+            document.getElementById('modalHigh').innerText = `₹${s.high_price.toFixed(2)}`;
+            document.getElementById('modalLow').innerText = `₹${s.low_price.toFixed(2)}`;
+            document.getElementById('modalClose').innerText = `₹${s.prev_close_price.toFixed(2)}`;
+            document.getElementById('modalAvg').innerText = `₹${s.avg_trade_price.toFixed(2)}`;
+            document.getElementById('modalVolume').innerText = s.vol_traded_today.toLocaleString();
+            document.getElementById('modalBid').innerText = `₹${s.bid_price.toFixed(2)} (${s.bid_size})`;
+            document.getElementById('modalAsk').innerText = `₹${s.ask_price.toFixed(2)} (${s.ask_size})`;
+            document.getElementById('modalTotBuy').innerText = s.tot_buy_qty.toLocaleString();
+            document.getElementById('modalTotSell').innerText = s.tot_sell_qty.toLocaleString();
+
+            document.getElementById('detailModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').style.display = 'none';
+        }
+
+        function changeSort(field) {
+            if (currentSort.startsWith(field)) {
+                currentSort = currentSort.endsWith('_asc') ? `${field}_desc` : `${field}_asc`;
+            } else {
+                currentSort = `${field}_desc`;
+            }
+            renderTable();
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            currentSearch = e.target.value;
+            currentPage = 1;
+            renderTable();
+        });
+
+        document.querySelectorAll('.filter-pills .pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                document.querySelectorAll('.filter-pills .pill').forEach(p => p.classList.remove('active'));
+                pill.classList.add('active');
+                currentFilter = pill.dataset.filter;
+                currentPage = 1;
+                renderTable();
+            });
+        });
+
+        document.getElementById('sortSelect').addEventListener('change', (e) => {
+            currentSort = e.target.value;
+            renderTable();
+        });
+
+        document.getElementById('pageSizeSelect').addEventListener('change', (e) => {
+            pageSize = parseInt(e.target.value);
+            currentPage = 1;
+            renderTable();
+        });
+
+        document.getElementById('prevPageBtn').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+            }
+        });
+
+        document.getElementById('nextPageBtn').addEventListener('click', () => {
+            const stocks = getFilteredAndSortedStocks();
+            const totalPages = Math.ceil(stocks.length / pageSize);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTable();
+            }
+        });
+
+        fetchInitialData();
+        connectWebSocket();
+
+        function renderScreenedTable(screened) {
+            if (!screened) screened = [];
+
+            const posScreened = screened.filter(s => s.percentage_change >= 0);
+            const negScreened = screened.filter(s => s.percentage_change < 0);
+
+            // Sort positive descending (+20% -> +4%)
+            posScreened.sort((a, b) => b.percentage_change - a.percentage_change);
+            // Sort negative ascending (-20% -> -4%)
+            negScreened.sort((a, b) => a.percentage_change - b.percentage_change);
+
+            const kpiEl = document.getElementById('kpiScreened');
+            if (kpiEl) kpiEl.textContent = screened.length;
+
+            const posCountEl = document.getElementById('posScreenedCount');
+            if (posCountEl) posCountEl.textContent = posScreened.length;
+
+            const negCountEl = document.getElementById('negScreenedCount');
+            if (negCountEl) negCountEl.textContent = negScreened.length;
+
+            renderScreenedList('posScreenedTableBody', posScreened, true);
+            renderScreenedList('negScreenedTableBody', negScreened, false);
+        }
+
+        function renderScreenedList(tbodyId, list, isPositive) {
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+
+            if (!list || list.length === 0) {
+                const msg = isPositive ? 'No positive screened stocks (+4%) detected yet.' : 'No negative screened stocks (-4%) detected yet.';
+                tbody.innerHTML = `<tr><td colspan="6" class="screened-empty">${msg}</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            list.forEach(s => {
+                const chpClass = isPositive ? 'up' : 'down';
+                const chpSign = s.percentage_change >= 0 ? '+' : '';
+                
+                // Format clean time string (HH:MM:SS)
+                let displayTime = s.added_time || '-';
+                if (!s.added_time && s.trigger_time) {
+                    if (s.trigger_time.includes(' ')) {
+                        displayTime = s.trigger_time.split(' ')[1].split('.')[0];
+                    } else if (s.trigger_time.includes('T')) {
+                        displayTime = s.trigger_time.split('T')[1].split('.')[0];
+                    } else {
+                        displayTime = s.trigger_time;
+                    }
+                }
+
+                html += `
+                    <tr onclick="openModal('${s.symbol}')" style="cursor: pointer;">
+                        <td>
+                            <div class="symbol-cell">
+                                <span>${s.short_name}</span>
+                                <span class="symbol-sub">${s.symbol}</span>
+                            </div>
+                        </td>
+                        <td style="font-weight: 700;">₹${s.ltp ? s.ltp.toFixed(2) : '0.00'}</td>
+                        <td>
+                            <span class="badge-chp ${chpClass}" style="font-size: 0.85rem;">
+                                ${chpSign}${s.percentage_change ? s.percentage_change.toFixed(2) : '0.00'}%
+                            </span>
+                        </td>
+                        <td>₹${s.prev_close_price ? s.prev_close_price.toFixed(2) : '0.00'}</td>
+                        <td style="font-weight: 600;">${formatVolume(s.vol_traded_today)}</td>
+                        <td style="color: var(--text-muted); font-size: 0.82rem; font-family: 'JetBrains Mono', monospace;">${displayTime}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
