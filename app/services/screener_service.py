@@ -35,30 +35,32 @@ class ScreenerService:
         )
 
         if stock_id is None:
-
             return
 
-        previous_close = (
-            self.state.previous_closes.get(
-                stock_id
+        # Dynamically populate/update previous close baseline from live FYERS tick
+        if tick.prev_close_price is not None and tick.prev_close_price > 0:
+            self.state.previous_closes[stock_id] = tick.prev_close_price
+
+        # Prioritize real-time official exchange % change from FYERS FullMode tick
+        if tick.chp is not None:
+            percentage_change = tick.chp
+        else:
+            previous_close = (
+                self.state.previous_closes.get(
+                    stock_id
+                )
             )
-        )
 
-        if previous_close is None:
+            if previous_close is None:
+                return
 
-            print(
-                f"[NO PREVIOUS CLOSE] "
-                f"{tick.symbol}"
+            percentage_change = (
+                self.calculate_percentage_change(
+                    ltp=tick.ltp,
+                    previous_close=previous_close,
+                )
             )
 
-            return
-
-        percentage_change = (
-            self.calculate_percentage_change(
-                ltp=tick.ltp,
-                previous_close=previous_close,
-            )
-        )
 
         screened_state = (
             self.state.screened.get(

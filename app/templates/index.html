@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NSE Live Stock Screener - Full Mode Real-Time Ticker</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         :root {
             --bg-body: #0b0f19;
@@ -15,15 +19,15 @@
             --bg-table-header: #111827;
             --border-color: rgba(255, 255, 255, 0.08);
             --border-hover: rgba(59, 130, 246, 0.4);
-            
+
             --text-main: #f3f4f6;
             --text-muted: #9ca3af;
             --text-dim: #6b7280;
-            
+
             --green: #10b981;
             --green-glow: rgba(16, 185, 129, 0.25);
             --green-bg: rgba(16, 185, 129, 0.15);
-            
+
             --red: #ef4444;
             --red-glow: rgba(239, 68, 68, 0.25);
             --red-bg: rgba(239, 68, 68, 0.15);
@@ -135,9 +139,20 @@
         }
 
         @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+
+            70% {
+                transform: scale(1.1);
+                box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+            }
+
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
         }
 
         .stat-chip {
@@ -197,9 +212,17 @@
             color: var(--text-dim);
         }
 
-        .text-green { color: var(--green); }
-        .text-red { color: var(--red); }
-        .text-accent { color: var(--accent); }
+        .text-green {
+            color: var(--green);
+        }
+
+        .text-red {
+            color: var(--red);
+        }
+
+        .text-accent {
+            color: var(--accent);
+        }
 
         .controls-bar {
             display: flex;
@@ -280,7 +303,7 @@
         .table-container {
             overflow-x: auto;
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
 
         table {
@@ -362,13 +385,25 @@
 
         /* Tick Flash Effects for Smooth Real-time Visual Updates */
         @keyframes flashUpKeyframe {
-            0% { background-color: rgba(16, 185, 129, 0.4); color: #fff; }
-            100% { background-color: transparent; }
+            0% {
+                background-color: rgba(16, 185, 129, 0.4);
+                color: #fff;
+            }
+
+            100% {
+                background-color: transparent;
+            }
         }
 
         @keyframes flashDownKeyframe {
-            0% { background-color: rgba(239, 68, 68, 0.4); color: #fff; }
-            100% { background-color: transparent; }
+            0% {
+                background-color: rgba(239, 68, 68, 0.4);
+                color: #fff;
+            }
+
+            100% {
+                background-color: transparent;
+            }
         }
 
         tr.flash-up td {
@@ -583,8 +618,257 @@
             color: var(--text-muted);
             font-size: 0.88rem;
         }
+
+        /* ========== CHART MODAL ========== */
+        .chart-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.82);
+            backdrop-filter: blur(12px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chart-panel {
+            width: 94%;
+            max-width: 1100px;
+            height: 80vh;
+            max-height: 700px;
+            background: #0d1321;
+            border: 1px solid var(--border-hover);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
+        }
+
+        .chart-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(17, 24, 39, 0.9);
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .chart-toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chart-symbol-display {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .chart-symbol-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chart-symbol-ltp {
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+        }
+
+        .chart-tf-pills {
+            display: flex;
+            gap: 0.35rem;
+        }
+
+        .chart-tf-pill {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 0.35rem 0.7rem;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .chart-tf-pill:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .chart-tf-pill.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        .chart-close-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .chart-close-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--red);
+            border-color: var(--red);
+        }
+
+        .chart-body {
+            flex: 1;
+            position: relative;
+            min-height: 0;
+        }
+
+        #chartCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .chart-status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.4rem 1.25rem;
+            border-top: 1px solid var(--border-color);
+            background: rgba(17, 24, 39, 0.7);
+            font-size: 0.72rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-dim);
+        }
+
+        .chart-ohlc-bar {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .chart-ohlc-bar span {
+            color: var(--text-muted);
+        }
+
+        .chart-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(13, 19, 33, 0.9);
+            z-index: 10;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .chart-loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .chart-loading-text {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .chart-error {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(13, 19, 33, 0.9);
+            z-index: 10;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .chart-error-icon {
+            font-size: 2rem;
+        }
+
+        .chart-error-text {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-align: center;
+            max-width: 300px;
+        }
+
+        .btn-chart {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+            border: 1px solid var(--accent);
+            color: #60a5fa;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
+        .btn-chart svg {
+            width: 16px;
+            height: 12px;
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .btn-chart:hover {
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            color: #ffffff;
+            border-color: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        .btn-chart:hover svg {
+            transform: scale(1.15);
+        }
     </style>
 </head>
+
 <body>
 
     <header>
@@ -645,7 +929,8 @@
             <div class="screened-box pos-box glass">
                 <div class="screened-header">
                     <div class="screened-title">
-                        <span class="dot connected" style="background-color: var(--green); box-shadow: 0 0 8px var(--green);"></span>
+                        <span class="dot connected"
+                            style="background-color: var(--green); box-shadow: 0 0 8px var(--green);"></span>
                         <h2>🚀 Positive Screened (+4% or higher)</h2>
                     </div>
                     <span class="screened-badge-pos" id="posScreenedCount">0</span>
@@ -660,11 +945,12 @@
                                 <th>Prev Close</th>
                                 <th>Volume</th>
                                 <th>Added At</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="posScreenedTableBody">
                             <tr>
-                                <td colspan="6" class="screened-empty">
+                                <td colspan="7" class="screened-empty">
                                     No positive screened stocks (+4%) detected yet.
                                 </td>
                             </tr>
@@ -677,7 +963,8 @@
             <div class="screened-box neg-box glass">
                 <div class="screened-header">
                     <div class="screened-title">
-                        <span class="dot connected" style="background-color: var(--red); box-shadow: 0 0 8px var(--red);"></span>
+                        <span class="dot connected"
+                            style="background-color: var(--red); box-shadow: 0 0 8px var(--red);"></span>
                         <h2>📉 Negative Screened (-4% or lower)</h2>
                     </div>
                     <span class="screened-badge-neg" id="negScreenedCount">0</span>
@@ -692,11 +979,12 @@
                                 <th>Prev Close</th>
                                 <th>Volume</th>
                                 <th>Added At</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="negScreenedTableBody">
                             <tr>
-                                <td colspan="6" class="screened-empty">
+                                <td colspan="7" class="screened-empty">
                                     No negative screened stocks (-4%) detected yet.
                                 </td>
                             </tr>
@@ -708,7 +996,8 @@
 
         <div class="controls-bar glass">
             <div class="search-group">
-                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search by Symbol (e.g. RELIANCE, TCS, INFY)...">
+                <input type="text" id="searchInput" class="search-input"
+                    placeholder="🔍 Search by Symbol (e.g. RELIANCE, TCS, INFY)...">
             </div>
 
             <div class="filter-pills">
@@ -753,11 +1042,12 @@
                         <th onclick="changeSort('vol_traded_today')">Volume</th>
                         <th>Bid / Ask</th>
                         <th>Updated</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="stocksTableBody">
                     <tr>
-                        <td colspan="12" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                        <td colspan="13" style="text-align: center; padding: 3rem; color: var(--text-muted);">
                             Connecting to FYERS Full Mode WebSocket & Loading symbols...
                         </td>
                     </tr>
@@ -780,24 +1070,94 @@
             <div class="modal-header">
                 <div>
                     <h2 id="modalSymbol" style="font-size: 1.4rem;">NSE:RELIANCE-EQ</h2>
-                    <p id="modalLtp" style="font-size: 1.1rem; font-weight: 700; color: var(--green); margin-top: 0.2rem;">₹ 0.00 (0.00%)</p>
+                    <p id="modalLtp"
+                        style="font-size: 1.1rem; font-weight: 700; color: var(--green); margin-top: 0.2rem;">₹ 0.00
+                        (0.00%)</p>
                 </div>
                 <button class="modal-close" onclick="closeModal()">×</button>
             </div>
 
             <div class="detail-grid">
-                <div class="detail-item"><div class="detail-label">Open Price</div><div class="detail-val" id="modalOpen">₹0.00</div></div>
-                <div class="detail-item"><div class="detail-label">Day High</div><div class="detail-val text-green" id="modalHigh">₹0.00</div></div>
-                <div class="detail-item"><div class="detail-label">Day Low</div><div class="detail-val text-red" id="modalLow">₹0.00</div></div>
-                <div class="detail-item"><div class="detail-label">Previous Close</div><div class="detail-val" id="modalClose">₹0.00</div></div>
-                <div class="detail-item"><div class="detail-label">Avg Trade Price</div><div class="detail-val" id="modalAvg">₹0.00</div></div>
-                <div class="detail-item"><div class="detail-label">Volume Traded</div><div class="detail-val" id="modalVolume">0</div></div>
-                <div class="detail-item"><div class="detail-label">Best Bid (Buy)</div><div class="detail-val text-green" id="modalBid">₹0.00 (0)</div></div>
-                <div class="detail-item"><div class="detail-label">Best Ask (Sell)</div><div class="detail-val text-red" id="modalAsk">₹0.00 (0)</div></div>
+                <div class="detail-item">
+                    <div class="detail-label">Open Price</div>
+                    <div class="detail-val" id="modalOpen">₹0.00</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Day High</div>
+                    <div class="detail-val text-green" id="modalHigh">₹0.00</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Day Low</div>
+                    <div class="detail-val text-red" id="modalLow">₹0.00</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Previous Close</div>
+                    <div class="detail-val" id="modalClose">₹0.00</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Avg Trade Price</div>
+                    <div class="detail-val" id="modalAvg">₹0.00</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Volume Traded</div>
+                    <div class="detail-val" id="modalVolume">0</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Best Bid (Buy)</div>
+                    <div class="detail-val text-green" id="modalBid">₹0.00 (0)</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Best Ask (Sell)</div>
+                    <div class="detail-val text-red" id="modalAsk">₹0.00 (0)</div>
+                </div>
             </div>
 
-            <div style="background: rgba(0,0,0,0.3); padding: 0.8rem; border-radius: 8px; font-size: 0.8rem; font-family: monospace;">
-                <strong>Market Depth Summary:</strong> Total Buy Qty: <span id="modalTotBuy" class="text-green">0</span> | Total Sell Qty: <span id="modalTotSell" class="text-red">0</span>
+            <div
+                style="background: rgba(0,0,0,0.3); padding: 0.8rem; border-radius: 8px; font-size: 0.8rem; font-family: monospace;">
+                <strong>Market Depth Summary:</strong> Total Buy Qty: <span id="modalTotBuy" class="text-green">0</span>
+                | Total Sell Qty: <span id="modalTotSell" class="text-red">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== CHART MODAL ========== -->
+    <div id="chartOverlay" class="chart-overlay">
+        <div class="chart-panel">
+            <div class="chart-toolbar">
+                <div class="chart-toolbar-left">
+                    <div class="chart-symbol-display">
+                        <div class="chart-symbol-name" id="chartSymbolName">—</div>
+                        <div class="chart-symbol-ltp" id="chartSymbolLtp">—</div>
+                    </div>
+                    <div class="chart-tf-pills" id="chartTfPills">
+                        <div class="chart-tf-pill active" data-tf="1m">1m</div>
+                        <div class="chart-tf-pill" data-tf="5m">5m</div>
+                        <div class="chart-tf-pill" data-tf="15m">15m</div>
+                        <div class="chart-tf-pill" data-tf="30m">30m</div>
+                        <div class="chart-tf-pill" data-tf="1h">1h</div>
+                    </div>
+                </div>
+                <button class="chart-close-btn" onclick="closeChart()" title="Close chart">×</button>
+            </div>
+            <div class="chart-body">
+                <div id="chartContainer" style="width: 100%; height: 100%;"></div>
+                <div class="chart-loading" id="chartLoading" style="display: none;">
+                    <div class="chart-loading-spinner"></div>
+                    <div class="chart-loading-text">Loading chart data...</div>
+                </div>
+                <div class="chart-error" id="chartError">
+                    <div class="chart-error-icon">⚠️</div>
+                    <div class="chart-error-text" id="chartErrorText">Failed to load chart data.</div>
+                </div>
+            </div>
+            <div class="chart-status-bar">
+                <div class="chart-ohlc-bar" id="chartOhlcBar">
+                    <span>O: <b id="chartOhlcO">—</b></span>
+                    <span>H: <b id="chartOhlcH" style="color:var(--green)">—</b></span>
+                    <span>L: <b id="chartOhlcL" style="color:var(--red)">—</b></span>
+                    <span>C: <b id="chartOhlcC">—</b></span>
+                </div>
+                <div id="chartStatusText">Ready</div>
             </div>
         </div>
     </div>
@@ -835,7 +1195,7 @@
                                 hasNewStocks = true;
                             }
                             allStocksMap.set(stock.symbol, stock);
-                            
+
                             // In-place DOM update for existing visible rows
                             updateTableRowInPlace(stock);
                         });
@@ -843,18 +1203,37 @@
                         if (hasNewStocks) {
                             renderTable();
                         }
+                        if (chartState.isOpen && chartState.symbol && allStocksMap.has(chartState.symbol)) {
+                            updateChartLtp(allStocksMap.get(chartState.symbol));
+                        }
                     }
                     // Update screened stocks table
                     if (msg.screened) {
                         renderScreenedTable(msg.screened);
                     }
                 }
+                // Handle candle events for chart
+                else if (msg.type === 'candle_update' || msg.type === 'candle_new' || msg.type === 'candle_closed' || msg.type === 'candle_snapshot') {
+                    handleCandleWsMessage(msg);
+                }
             };
 
             ws.onclose = () => {
                 document.getElementById('statusDot').classList.remove('connected');
                 document.getElementById('statusText').innerText = 'Reconnecting...';
+                chartSetStatus('WS disconnected — reconnecting...');
                 setTimeout(connectWebSocket, 1500);
+            };
+
+            ws.onopen_after = ws.onopen;
+            const origOnOpen = ws.onopen;
+            ws.onopen = () => {
+                origOnOpen();
+                // Re-subscribe to candle updates if chart is open
+                if (chartState.symbol && chartState.isOpen) {
+                    chartSubscribe(chartState.symbol, chartState.resolution);
+                    chartSetStatus('Reconnected — live');
+                }
             };
         }
 
@@ -1002,7 +1381,7 @@
                 const chpSign = s.chp > 0 ? '+' : '';
 
                 html += `
-                    <tr id="${safeId}" onclick="openModal('${s.symbol}')">
+                    <tr id="${safeId}" onclick="openChart('${s.symbol}')">
                         <td>
                             <div class="symbol-cell">
                                 <span>${s.short_name}</span>
@@ -1025,6 +1404,14 @@
                             <span class="text-red">₹${s.ask_price ? s.ask_price.toFixed(2) : '0'}</span>
                         </td>
                         <td class="cell-updated" style="color: var(--text-dim); font-size: 0.75rem;">${s.updated_at || '-'}</td>
+                        <td>
+                            <button class="btn-chart" onclick="event.stopPropagation(); openChart('${s.symbol}')" title="Open ${s.short_name} Chart">
+                                <svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1.5 10.5L5.5 6L8.5 8L14.5 2"></path>
+                                    <polyline points="10.5 2 14.5 2 14.5 6"></polyline>
+                                </svg>
+                            </button>
+                        </td>
                     </tr>
                 `;
             });
@@ -1149,7 +1536,7 @@
             list.forEach(s => {
                 const chpClass = isPositive ? 'up' : 'down';
                 const chpSign = s.percentage_change >= 0 ? '+' : '';
-                
+
                 // Format clean time string (HH:MM:SS)
                 let displayTime = s.added_time || '-';
                 if (!s.added_time && s.trigger_time) {
@@ -1163,7 +1550,7 @@
                 }
 
                 html += `
-                    <tr onclick="openModal('${s.symbol}')" style="cursor: pointer;">
+                    <tr onclick="openChart('${s.symbol}')" style="cursor: pointer;">
                         <td>
                             <div class="symbol-cell">
                                 <span>${s.short_name}</span>
@@ -1179,12 +1566,342 @@
                         <td>₹${s.prev_close_price ? s.prev_close_price.toFixed(2) : '0.00'}</td>
                         <td style="font-weight: 600;">${formatVolume(s.vol_traded_today)}</td>
                         <td style="color: var(--text-muted); font-size: 0.82rem; font-family: 'JetBrains Mono', monospace;">${displayTime}</td>
+                        <td>
+                            <button class="btn-chart" onclick="event.stopPropagation(); openChart('${s.symbol}')" title="Open ${s.short_name} Chart">
+                                <svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1.5 10.5L5.5 6L8.5 8L14.5 2"></path>
+                                    <polyline points="10.5 2 14.5 2 14.5 6"></polyline>
+                                </svg>
+                            </button>
+                        </td>
                     </tr>
                 `;
             });
 
             tbody.innerHTML = html;
         }
+
+        // ========== LIGHTWEIGHT CHARTS ENGINE ==========
+        const chartState = {
+            symbol: null,
+            resolution: '1m',
+            candles: [],
+            isOpen: false,
+            isLoading: false,
+        };
+
+        let lwChart = null;
+        let candleSeries = null;
+
+        function initLwChart() {
+            const container = document.getElementById('chartContainer');
+            if (!container) return;
+
+            if (!lwChart) {
+                lwChart = LightweightCharts.createChart(container, {
+                    width: container.clientWidth,
+                    height: container.clientHeight,
+                    layout: {
+                        background: { type: 'solid', color: '#0d1321' },
+                        textColor: '#9ca3af',
+                        fontFamily: "'JetBrains Mono', monospace",
+                    },
+                    grid: {
+                        vertLines: { color: 'rgba(255, 255, 255, 0.04)' },
+                        horzLines: { color: 'rgba(255, 255, 255, 0.04)' },
+                    },
+                    crosshair: {
+                        mode: LightweightCharts.CrosshairMode.Normal,
+                        vertLine: { color: 'rgba(59, 130, 246, 0.5)', width: 1, style: 2 },
+                        horzLine: { color: 'rgba(59, 130, 246, 0.5)', width: 1, style: 2 },
+                    },
+                    localization: {
+                        timeFormatter: (time) => {
+                            if (typeof time === 'number') {
+                                const date = new Date(time * 1000);
+                                return date.toLocaleTimeString('en-IN', {
+                                    timeZone: 'Asia/Kolkata',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: false
+                                });
+                            }
+                            return String(time);
+                        },
+                    },
+                    timeScale: {
+                        borderColor: 'rgba(255, 255, 255, 0.08)',
+                        timeVisible: true,
+                        secondsVisible: false,
+                        tickMarkFormatter: (time) => {
+                            if (typeof time === 'number') {
+                                const date = new Date(time * 1000);
+                                return date.toLocaleTimeString('en-IN', {
+                                    timeZone: 'Asia/Kolkata',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: false
+                                });
+                            }
+                            return String(time);
+                        },
+                    },
+                });
+
+                const seriesOptions = {
+                    upColor: '#10b981',
+                    downColor: '#ef4444',
+                    borderUpColor: '#10b981',
+                    borderDownColor: '#ef4444',
+                    wickUpColor: '#10b981',
+                    wickDownColor: '#ef4444',
+                };
+
+                if (typeof lwChart.addCandlestickSeries === 'function') {
+                    candleSeries = lwChart.addCandlestickSeries(seriesOptions);
+                } else if (typeof lwChart.addSeries === 'function' && typeof LightweightCharts !== 'undefined' && LightweightCharts.CandlestickSeries) {
+                    candleSeries = lwChart.addSeries(LightweightCharts.CandlestickSeries, seriesOptions);
+                }
+
+                // Update status bar OHLC values on hover
+                lwChart.subscribeCrosshairMove(param => {
+                    if (!param || !param.time || !param.seriesData.has(candleSeries)) {
+                        const last = chartState.candles[chartState.candles.length - 1];
+                        if (last) updateChartOhlc(last);
+                        return;
+                    }
+                    const data = param.seriesData.get(candleSeries);
+                    if (data) {
+                        updateChartOhlc(data);
+                    }
+                });
+            } else {
+                lwChart.applyOptions({
+                    width: container.clientWidth,
+                    height: container.clientHeight,
+                });
+            }
+        }
+
+        function openChart(symbol) {
+            chartState.symbol = symbol;
+            chartState.isOpen = true;
+            chartState.resolution = '1m';
+
+            const stock = allStocksMap.get(symbol);
+            const shortName = symbol.replace('NSE:', '').replace('-EQ', '');
+            document.getElementById('chartSymbolName').textContent = shortName;
+            updateChartLtp(stock);
+
+            document.querySelectorAll('.chart-tf-pill').forEach(p => p.classList.remove('active'));
+            document.querySelector('.chart-tf-pill[data-tf="1m"]').classList.add('active');
+
+            document.getElementById('chartOverlay').style.display = 'flex';
+            
+            setTimeout(() => {
+                initLwChart();
+                loadChartHistory(symbol, '1m');
+            }, 50);
+        }
+
+        function closeChart() {
+            chartState.isOpen = false;
+            document.getElementById('chartOverlay').style.display = 'none';
+            chartUnsubscribe();
+            chartState.symbol = null;
+            chartState.candles = [];
+            if (candleSeries) {
+                candleSeries.setData([]);
+            }
+        }
+
+        function updateChartLtp(stock) {
+            const ltpEl = document.getElementById('chartSymbolLtp');
+            if (!stock) { ltpEl.textContent = '—'; return; }
+            const sign = stock.chp >= 0 ? '+' : '';
+            const color = stock.chp >= 0 ? 'var(--green)' : 'var(--red)';
+            ltpEl.innerHTML = `<span style="color:${color}">₹${stock.ltp.toFixed(2)} (${sign}${stock.chp.toFixed(2)}%)</span>`;
+        }
+
+        async function loadChartHistory(symbol, resolution) {
+            chartState.isLoading = true;
+            showChartLoading(true);
+            showChartError(false);
+            chartSetStatus('Loading...');
+
+            try {
+                const resp = await fetch(`/api/chart/candles?symbol=${encodeURIComponent(symbol)}&resolution=${resolution}`);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+
+                if (!data.candles || data.candles.length === 0) {
+                    chartState.candles = [];
+                    if (candleSeries) candleSeries.setData([]);
+                    showChartLoading(false);
+                    chartSetStatus('No candle data available');
+                } else {
+                    chartState.candles = data.candles;
+                    
+                    const map = new Map();
+                    data.candles.forEach(c => {
+                        map.set(c.timestamp, {
+                            time: c.timestamp,
+                            open: c.open,
+                            high: c.high,
+                            low: c.low,
+                            close: c.close,
+                        });
+                    });
+                    const sorted = Array.from(map.values()).sort((a, b) => a.time - b.time);
+
+                    if (candleSeries) {
+                        candleSeries.setData(sorted);
+                        lwChart.timeScale().fitContent();
+                    }
+
+                    const last = data.candles[data.candles.length - 1];
+                    updateChartOhlc(last);
+
+                    showChartLoading(false);
+                    chartSetStatus(`${sorted.length} candles loaded`);
+                }
+
+                chartSubscribe(symbol, resolution);
+            } catch (err) {
+                console.error('Chart load error:', err);
+                showChartLoading(false);
+                showChartError(true, `Failed to load chart data: ${err.message}`);
+                chartSetStatus('Error loading data');
+            } finally {
+                chartState.isLoading = false;
+            }
+        }
+
+        function chartSubscribe(symbol, resolution) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: 'subscribe_candle', symbol: symbol, resolution: resolution }));
+            }
+        }
+
+        function chartUnsubscribe() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: 'unsubscribe_candle' }));
+            }
+        }
+
+        function handleCandleWsMessage(msg) {
+            if (!chartState.isOpen || !chartState.symbol) return;
+            if (msg.symbol && msg.symbol !== chartState.symbol) return;
+
+            if (msg.type === 'candle_snapshot') {
+                if (msg.candles && msg.candles.length > 0) {
+                    const snapMap = new Map();
+                    chartState.candles.forEach(c => snapMap.set(c.timestamp, c));
+                    msg.candles.forEach(c => snapMap.set(c.timestamp, c));
+
+                    const sortedCandles = Array.from(snapMap.values()).sort((a, b) => a.timestamp - b.timestamp);
+                    chartState.candles = sortedCandles;
+
+                    const lwData = sortedCandles.map(c => ({
+                        time: c.timestamp,
+                        open: c.open,
+                        high: c.high,
+                        low: c.low,
+                        close: c.close,
+                    }));
+
+                    if (candleSeries) candleSeries.setData(lwData);
+                    chartSetStatus('Live — streaming');
+                }
+                return;
+            }
+
+            if (msg.type === 'candle_update' || msg.type === 'candle_new' || msg.type === 'candle_closed') {
+                const c = msg.candle;
+                if (!c || !candleSeries) return;
+
+                const idx = chartState.candles.findIndex(item => item.timestamp === c.timestamp);
+                if (idx >= 0) {
+                    chartState.candles[idx] = c;
+                } else {
+                    chartState.candles.push(c);
+                }
+
+                candleSeries.update({
+                    time: c.timestamp,
+                    open: c.open,
+                    high: c.high,
+                    low: c.low,
+                    close: c.close,
+                });
+
+                updateChartOhlc(c);
+                chartSetStatus(msg.type === 'candle_new' ? 'New candle' : 'Live');
+            }
+        }
+
+        function showChartLoading(show) {
+            document.getElementById('chartLoading').style.display = show ? 'flex' : 'none';
+        }
+
+        function showChartError(show, text) {
+            const el = document.getElementById('chartError');
+            el.style.display = show ? 'flex' : 'none';
+            if (text) document.getElementById('chartErrorText').textContent = text;
+        }
+
+        function chartSetStatus(text) {
+            document.getElementById('chartStatusText').textContent = text;
+        }
+
+        function updateChartOhlc(c) {
+            if (!c) return;
+            document.getElementById('chartOhlcO').textContent = c.open?.toFixed(2) ?? '—';
+            document.getElementById('chartOhlcH').textContent = c.high?.toFixed(2) ?? '—';
+            document.getElementById('chartOhlcL').textContent = c.low?.toFixed(2) ?? '—';
+            document.getElementById('chartOhlcC').textContent = c.close?.toFixed(2) ?? '—';
+        }
+
+        // Timeframe pill clicks
+        document.getElementById('chartTfPills').addEventListener('click', (e) => {
+            const pill = e.target.closest('.chart-tf-pill');
+            if (!pill || !chartState.symbol) return;
+            const tf = pill.dataset.tf;
+            if (tf === chartState.resolution) return;
+
+            chartState.resolution = tf;
+            document.querySelectorAll('.chart-tf-pill').forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+
+            chartUnsubscribe();
+            chartState.candles = [];
+            if (candleSeries) candleSeries.setData([]);
+            loadChartHistory(chartState.symbol, tf);
+        });
+
+        // Close on overlay click
+        document.getElementById('chartOverlay').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeChart();
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && chartState.isOpen) closeChart();
+        });
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            if (chartState.isOpen && lwChart) {
+                const container = document.getElementById('chartContainer');
+                if (container) {
+                    lwChart.applyOptions({
+                        width: container.clientWidth,
+                        height: container.clientHeight,
+                    });
+                }
+            }
+        });
     </script>
 </body>
+
 </html>

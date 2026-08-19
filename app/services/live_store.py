@@ -1,7 +1,11 @@
 import asyncio
+import json
 import time
 from typing import Any
 from fastapi import WebSocket
+
+from app.schemas.candle import Candle
+
 
 class LiveMarketStore:
     def __init__(self):
@@ -11,6 +15,13 @@ class LiveMarketStore:
         self.is_ws_connected: bool = False
         self.dirty_symbols: set[str] = set()
         self.screener_service = None  # Set by main.py at startup
+        self.candle_service = None  # Set by main.py at startup
+
+        # Candle subscription tracking: maps WebSocket → {symbol, resolution}
+        self._candle_subscriptions: dict[WebSocket, dict[str, str]] = {}
+
+        # Pending candle events to broadcast: list of (event_type, candle_dict, closed_candle_dict_or_None)
+        self._pending_candle_events: list[dict[str, Any]] = []
 
     def process_tick(self, message: dict[str, Any]) -> None:
         symbol = message.get("symbol")
@@ -58,6 +69,17 @@ class LiveMarketStore:
 
         self._data[symbol] = quote
         self.dirty_symbols.add(symbol)
+
+    def queue_candle_event(self, event_type: str, candle: Candle, closed_candle: Candle | None = None) -> None:
+        """Queue a candle event for broadcasting on the next broadcast cycle."""
+        event = {
+            "type": "candle_update" if event_type == "update" else "candle_closed" if event_type == "closed" else "candle_new",
+            "symbol": candle.symbol,
+            "candle": candle.to_dict(),
+        }
+        if closed_candle is not None:
+            event["closed_candle"] = closed_candle.to_dict()
+        self._pending_candle_events.append(event)
 
     def get_all_quotes(
         self,
@@ -154,17 +176,21 @@ class LiveMarketStore:
             else:
                 added_time = str(state.trigger_time)
 
+            current_ltp = live_data.get("ltp", state.ltp)
+            current_chp = live_data.get("chp", state.percentage_change)
+
             screened_list.append({
                 "stock_id": stock_id,
                 "symbol": symbol,
                 "short_name": short_name,
-                "ltp": float(state.ltp),
-                "percentage_change": float(state.percentage_change),
+                "ltp": float(current_ltp) if current_ltp is not None else 0.0,
+                "percentage_change": float(current_chp) if current_chp is not None else 0.0,
                 "added_time": added_time,
                 "trigger_time": str(state.trigger_time) if state.trigger_time else "",
                 "vol_traded_today": live_data.get("vol_traded_today", 0),
                 "prev_close_price": live_data.get("prev_close_price", 0.0),
             })
+
 
         # Sort by absolute percentage change descending
         screened_list.sort(key=lambda x: abs(x["percentage_change"]), reverse=True)
@@ -177,6 +203,45 @@ class LiveMarketStore:
     def disconnect_ws(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
+        # Clean up any candle subscriptions for this connection
+        self._candle_subscriptions.pop(websocket, None)
+
+    def subscribe_candle(self, websocket: WebSocket, symbol: str, resolution: str = "1m") -> None:
+        """Register a WebSocket client for live candle updates on a specific symbol."""
+        if not symbol.startswith("NSE:"):
+            symbol = f"NSE:{symbol}"
+        if not symbol.endswith("-EQ") and not symbol.endswith("-INDEX"):
+            symbol = f"{symbol}-EQ"
+        self._candle_subscriptions[websocket] = {"symbol": symbol, "resolution": resolution}
+
+    def unsubscribe_candle(self, websocket: WebSocket) -> None:
+        """Remove a WebSocket client's candle subscription."""
+        self._candle_subscriptions.pop(websocket, None)
+
+    async def handle_client_message(self, websocket: WebSocket, raw_text: str) -> None:
+        """Handles incoming client messages on /ws/live for candle subscribe/unsubscribe."""
+        try:
+            msg = json.loads(raw_text)
+        except (json.JSONDecodeError, TypeError):
+            return
+
+        action = msg.get("action")
+        if action == "subscribe_candle":
+            symbol = msg.get("symbol", "")
+            resolution = msg.get("resolution", "1m")
+            if symbol:
+                self.subscribe_candle(websocket, symbol, resolution)
+                # Send current live candles snapshot for the symbol
+                if self.candle_service:
+                    candles = self.candle_service.get_candles_for_timeframe(symbol, resolution)
+                    await websocket.send_json({
+                        "type": "candle_snapshot",
+                        "symbol": symbol,
+                        "resolution": resolution,
+                        "candles": [c.to_dict() for c in candles],
+                    })
+        elif action == "unsubscribe_candle":
+            self.unsubscribe_candle(websocket)
 
     async def broadcast_updates(self):
         """Runs continuously in background loop to send updated tick batches to connected clients"""
@@ -204,6 +269,66 @@ class LiveMarketStore:
 
                         for conn in disconnected:
                             self.disconnect_ws(conn)
+
+                # Broadcast pending candle events to subscribed clients
+                if self._pending_candle_events and self._candle_subscriptions:
+                    events = list(self._pending_candle_events)
+                    self._pending_candle_events.clear()
+
+                    disconnected = []
+                    for ws, sub in list(self._candle_subscriptions.items()):
+                        sub_symbol = sub["symbol"]
+                        sub_resolution = sub.get("resolution", "1m")
+                        for event in events:
+                            if event["symbol"] != sub_symbol:
+                                continue
+
+                            # For 1m subscriptions, send the raw event directly
+                            if sub_resolution == "1m":
+                                try:
+                                    await ws.send_json(event)
+                                except Exception:
+                                    disconnected.append(ws)
+                                    break
+                            else:
+                                # For higher timeframes, aggregate and send only on
+                                # candle_new or candle_closed events (not every tick update)
+                                if event["type"] in ("candle_new", "candle_closed"):
+                                    if self.candle_service:
+                                        agg_candles = self.candle_service.get_candles_for_timeframe(sub_symbol, sub_resolution)
+                                        if agg_candles:
+                                            last_candle = agg_candles[-1]
+                                            try:
+                                                await ws.send_json({
+                                                    "type": event["type"],
+                                                    "symbol": sub_symbol,
+                                                    "resolution": sub_resolution,
+                                                    "candle": last_candle.to_dict(),
+                                                })
+                                            except Exception:
+                                                disconnected.append(ws)
+                                                break
+                                elif event["type"] == "candle_update":
+                                    # Throttle: only send forming candle update for higher TFs
+                                    if self.candle_service:
+                                        agg_candles = self.candle_service.get_candles_for_timeframe(sub_symbol, sub_resolution)
+                                        if agg_candles:
+                                            last_candle = agg_candles[-1]
+                                            try:
+                                                await ws.send_json({
+                                                    "type": "candle_update",
+                                                    "symbol": sub_symbol,
+                                                    "resolution": sub_resolution,
+                                                    "candle": last_candle.to_dict(),
+                                                })
+                                            except Exception:
+                                                disconnected.append(ws)
+                                                break
+                    for conn in disconnected:
+                        self.disconnect_ws(conn)
+                elif self._pending_candle_events:
+                    # No subscribers, clear pending events
+                    self._pending_candle_events.clear()
 
                 await asyncio.sleep(0.15)  # Send batch every 150ms
             except Exception as e:

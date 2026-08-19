@@ -8,3 +8,5 @@ class MarketTick:
     symbol: str
     ltp: Decimal
     timestamp: datetime
+    chp: Decimal | None = None
+    prev_close_price: Decimal | None = None

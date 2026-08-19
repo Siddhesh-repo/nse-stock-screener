@@ -3,6 +3,7 @@ import queue
 
 
 from app.core.database import AsyncSessionLocal
+from app.services.redis_tick_buffer import RedisTickBuffer
 from app.services.screener_event_service import (
     ScreenerEventService,
 )
@@ -38,6 +39,16 @@ class ScreenerEventWorker:
                 continue
 
             try:
+                # Push event to Redis Stream (non-blocking)
+                await RedisTickBuffer.push_screener_event({
+                    "stock_id": event.stock_id,
+                    "event_type": event.event_type,
+                    "trading_date": str(self.screener_service.trading_date),
+                    "crossed_at": event.event_time.isoformat() if hasattr(event.event_time, 'isoformat') else str(event.event_time),
+                    "trigger_price": float(event.ltp),
+                    "trigger_percentage": float(event.percentage_change),
+                })
+                
                 async with AsyncSessionLocal() as db:
 
                     if event.event_type == "SCREENED":
